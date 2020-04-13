@@ -8,5 +8,3 @@ if exists('g:ChoreLoaded') || &compatible || v:version < 700
   finish
 endif
 let g:ChoreLoaded = 1
-
-call chore#init()

@@ -1,7 +1,3 @@
-if !exists('g:chore_case_sensitive')
-  let g:chore_case_sensitive = 0
-endif
-
 if !exists('g:chore_keywords')
   let g:chore_keywords = ['TODO', 'FIXME', 'BUG']
 endif
@@ -15,6 +11,7 @@ function! chore#open() abort
     return
   endif
 
+  " TODO: Make chore#find_directory() a bufvar
   call chore#search(l:executable, l:search_pattern, chore#find_directory())
 endfunction
 
@@ -120,22 +117,22 @@ function! chore#init() abort
   if executable('rg')
     let l:rg_help = system('rg --help')
     if match(l:rg_help, '--no-config') != -1
-      let s:executables['rg'].=' --no-config'
+      let s:executables['rg'] .= ' --no-config'
     endif
     if match(l:rg_help, '--max-columns') != -1
-      let s:executables['rg'].=' --max-columns 4096'
+      let s:executables['rg'] .= ' --max-columns 4096'
     endif
   endif
 
   if executable('ag')
     let l:ag_help=system('ag --help')
     if match(l:ag_help, '--vimgrep') != -1
-      let s:executables['ag'].='--vimgrep'
+      let s:executables['ag'] .= '--vimgrep'
     else
-      let s:executables['ag'].='--column'
+      let s:executables['ag'] .= '--column'
     endif
     if match(l:ag_help, '--width') != -1
-      let s:executables['ag'].=' --width 4096'
+      let s:executables['ag'] .= ' --width 4096'
     endif
   endif
 
@@ -152,8 +149,17 @@ function! chore#executable() abort
 
   for l:executable in l:executables
     if executable(l:executable)
-      return l:executable . ' ' . s:executables[l:executable]
+      let l:custom_args = get(g:, 'chore_executable_arguments', {})
+      let l:type = exists('v:t_dict') ? v:t_dict : 4
+
+      if type(l:custom_args) == l:type && has_key(l:custom_args, l:executable)
+        return l:executable . ' ' . l:custom_args[l:executable]
+      else
+        return l:executable . ' ' . s:executables[l:executable]
+      endif
     endif
   endfor
   return ''
 endfunction
+
+call chore#init()
