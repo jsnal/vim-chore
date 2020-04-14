@@ -1,27 +1,25 @@
-if !exists('g:chore_keywords')
-  let g:chore_keywords = ['TODO', 'FIXME', 'BUG']
-endif
-
-if !exists('g:chore_jump_type')
-  let g:chore_jump_type = 1
-endif
+"-----------------------------------------------"
+" File:     autoload/chore.vim
+" Author:   Jason Long <jasonlongball@gmail.com>
+" Version:  v0.0.1
+"-----------------------------------------------"
 
 function! chore#open() abort
   let l:search_pattern = join(g:chore_keywords, '|')
 
-  let l:executable = chore#executable()
+  let l:executable = s:executable()
   if empty(l:executable)
-    call chore#executable_error()
+    call s:executable_error()
     return
   endif
 
-  " TODO: Make chore#find_directory() a bufvar
-  call chore#search(l:executable, l:search_pattern, chore#find_directory())
+  " TODO: Make s:find_directory() a bufvar
+  call s:search(l:executable, l:search_pattern, s:find_directory())
 endfunction
 
-function! chore#search(executable, search_pattern, location) abort
+function! s:search(executable, search_pattern, location) abort
   let l:output = system(a:executable . ' "' . a:search_pattern . '" "' . a:location . '"')
-  call chore#finalize_search(l:output)
+  call s:finalize_search(l:output)
 endfunction
 
 function! s:set_title(title) abort
@@ -42,7 +40,7 @@ function! s:jump_type() abort
   return g:chore_jump_type
 endfunction
 
-function! chore#finalize_search(output) abort
+function! s:finalize_search(output) abort
   execute 'cgetexpr a:output'
   if g:chore_jump_type == 1 || g:chore_jump_type == 2
     cope
@@ -57,7 +55,7 @@ function! chore#finalize_search(output) abort
   call s:set_title('Search for ' . join(g:chore_keywords, ', '))
 endfunction
 
-function! chore#executable_error() abort
+function! s:executable_error() abort
   call chore#error(
         \ 'Unable find valid executable. Install rg, ag, ack or ack-grep'
         \ )
@@ -78,19 +76,15 @@ endfunction
 " vim-rooter and just returns the raw output of the plugin.
 "
 " https://github.com/airblade/vim-rooter/blob/master/plugin/rooter.vim#L80-L126
-if !exists('g:chore_root_patterns')
-  let g:chore_root_patterns = ['.git', '.git/', '_darcs/', '.hg/', '.bzr/', '.svn/']
-endif
-
-function! chore#is_directory(pattern) abort
+function! s:is_directory(pattern) abort
   return a:pattern[-1:] == '/'
 endfunction
 
-function! chore#find_ancestor(pattern) abort
+function! s:find_ancestor(pattern) abort
   let fd_dir = isdirectory(s:fd) ? s:fd : fnamemodify(s:fd, ':h')
   let fd_dir_escaped = escape(fd_dir, ' ')
 
-  if chore#is_directory(a:pattern)
+  if s:is_directory(a:pattern)
     let match = finddir(a:pattern, fd_dir_escaped.';')
   else
     let [_suffixesadd, &suffixesadd] = [&suffixesadd, '']
@@ -102,7 +96,7 @@ function! chore#find_ancestor(pattern) abort
     return ''
   endif
 
-  if chore#is_directory(a:pattern)
+  if s:is_directory(a:pattern)
     if stridx(fnamemodify(fd_dir, ':p'), fnamemodify(match, ':p')) == 0
       return fnamemodify(match, ':p:h')
     else
@@ -113,7 +107,7 @@ function! chore#find_ancestor(pattern) abort
   endif
 endfunction
 
-function! chore#find_directory() abort
+function! s:find_directory() abort
   let s:fd = expand('%:p')
 
   if empty(s:fd)
@@ -121,17 +115,13 @@ function! chore#find_directory() abort
   endif
 
   for pattern in g:chore_root_patterns
-    let result = chore#find_ancestor(pattern)
+    let result = s:find_ancestor(pattern)
     if !empty(result)
       return result
     endif
   endfor
   return ''
 endfunction
-
-if !exists('g:chore_priority')
-  let g:chore_priority = ['rg', 'ag', 'ack', 'ack-grep']
-endif
 
 let s:executables = {
       \   'rg': '--vimgrep --no-heading',
@@ -172,17 +162,17 @@ function! chore#init() abort
   let s:init_done = 1
 endfunction
 
-function! chore#executables() abort
+function! s:executables() abort
   return copy(s:executables)
 endfunction
 
-function! chore#executable() abort
+function! s:executable() abort
   let l:valid_executables = keys(s:executables)
   let l:executables = filter(g:chore_priority, 'index(l:valid_executables, v:val) != -1')
 
   for l:executable in l:executables
     if executable(l:executable)
-      let l:custom_args = get(g:, 'chore_executable_arguments', {})
+      let l:custom_args = g:chore_executable_arguments
       let l:type = exists('v:t_dict') ? v:t_dict : 4
 
       if type(l:custom_args) == l:type && has_key(l:custom_args, l:executable)
