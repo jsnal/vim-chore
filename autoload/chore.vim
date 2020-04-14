@@ -2,6 +2,10 @@ if !exists('g:chore_keywords')
   let g:chore_keywords = ['TODO', 'FIXME', 'BUG']
 endif
 
+if !exists('g:chore_jump_type')
+  let g:chore_jump_type = 1
+endif
+
 function! chore#open() abort
   let l:search_pattern = join(g:chore_keywords, '|')
 
@@ -17,11 +21,40 @@ endfunction
 
 function! chore#search(executable, search_pattern, location) abort
   let l:output = system(a:executable . ' "' . a:search_pattern . '" "' . a:location . '"')
-  " echo a:executable . ' "' . a:search_pattern . '" "' . a:location . '"'
-  " echo l:output
+  call chore#finalize_search(l:output)
+endfunction
 
-  " Quick and dirty need to finalize the output
-  execute 'cgetexpr l:output'
+function! s:set_title(title) abort
+  if has('patch-7.4.2200')
+    call setqflist([], 'a', {'title' : a:title})
+  elseif a:type ==# 'qf'
+    let w:quickfix_title = a:title
+  endif
+endfunction
+
+" 0 - Chore will push to the qf list but hide it from the user
+" 1 - (default) Chore will push to the qf list and open/focus the qf list.
+" 2 - Chore will push to the qf list and open/focus the qf list and jump to it.
+function! s:jump_type() abort
+  if g:chore_jump_type != 0 && g:chore_jump_type != 1 && g:chore_jump_type != 2
+    let g:chore_jump_type = 1
+  endif
+  return g:chore_jump_type
+endfunction
+
+function! chore#finalize_search(output) abort
+  execute 'cgetexpr a:output'
+  if g:chore_jump_type == 1 || g:chore_jump_type == 2
+    cope
+    if g:chore_jump_type == 2
+      cfirst
+    endif
+  elseif g:chore_jump_type != 0
+    call chore#error(
+          \ 'Unable to push results to list. Check g:chore_jump_type'
+          \ )
+  endif
+  call s:set_title('Search for ' . join(g:chore_keywords, ', '))
 endfunction
 
 function! chore#executable_error() abort
