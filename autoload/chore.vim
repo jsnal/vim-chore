@@ -21,7 +21,7 @@ endfunction
 "       chore#open() function to pick async if it is available or default.
 function! s:search(executable, search_pattern, location) abort
   let l:output = system(a:executable . ' "' . a:search_pattern . '" "' . a:location . '"')
-  call s:finalize_search(l:output)
+  call chore#finalize_search(l:output)
 endfunction
 
 function! s:set_title(title) abort
@@ -42,7 +42,7 @@ function! s:jump_type() abort
   return g:chore_jump_type
 endfunction
 
-function! s:finalize_search(output) abort
+function! chore#finalize_search(output) abort
   execute 'cgetexpr a:output'
   if g:chore_jump_type == 1 || g:chore_jump_type == 2
     cope
@@ -159,6 +159,12 @@ function! chore#init() abort
     if match(l:ag_help, '--width') != -1
       let s:executables['ag'] .= ' --width 4096'
     endif
+  endif
+
+  let l:executable = chore#executable()
+  if !empty(l:executable)
+    let &grepprg=l:executable
+    let &grepformat='%f:%l:%m'
   endif
 
   let s:init_done = 1
