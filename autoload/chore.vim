@@ -1,22 +1,24 @@
 "-----------------------------------------------"
 " File:     autoload/chore.vim
 " Author:   Jason Long <jasonlongball@gmail.com>
-" Version:  v0.0.1
 "-----------------------------------------------"
 
 function! chore#open() abort
   let l:search_pattern = join(g:chore_keywords, '|')
 
-  let l:executable = s:executable()
+  let l:executable = chore#executable()
   if empty(l:executable)
     call s:executable_error()
     return
   endif
 
   " TODO: Make s:find_directory() a bufvar
-  call s:search(l:executable, l:search_pattern, s:find_directory())
+  " call s:search(l:executable, l:search_pattern, s:find_directory())
+  call chore#async#search(l:executable, l:search_pattern, s:find_directory())
 endfunction
 
+" TODO: Move this function to autoload/chore/default.vim and put a check in the
+"       chore#open() function to pick async if it is available or default.
 function! s:search(executable, search_pattern, location) abort
   let l:output = system(a:executable . ' "' . a:search_pattern . '" "' . a:location . '"')
   call s:finalize_search(l:output)
@@ -166,7 +168,7 @@ function! s:executables() abort
   return copy(s:executables)
 endfunction
 
-function! s:executable() abort
+function! chore#executable() abort
   let l:valid_executables = keys(s:executables)
   let l:executables = filter(g:chore_priority, 'index(l:valid_executables, v:val) != -1')
 
