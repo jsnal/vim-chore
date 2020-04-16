@@ -5,7 +5,7 @@
 
 let s:jobs = {}
 
-function! s:job_from_channel(channel)
+function! s:job_from_channel(channel) abort
   let l:channel_id = ch_info(a:channel)['id']
   if has_key(s:jobs, l:channel_id)
     return s:jobs[l:channel_id]

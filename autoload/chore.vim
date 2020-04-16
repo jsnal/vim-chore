@@ -3,8 +3,17 @@
 " Author:   Jason Long <jasonlongball@gmail.com>
 "-----------------------------------------------"
 
+let s:async_support = 0
+if (v:version >= 800 || has('patch-7.4.1829')) && (!has('nvim'))
+  if has('job') && has('channel')
+    let s:async_support = 1
+  endif
+endif
+
 function! chore#open() abort
   let l:search_pattern = join(g:chore_keywords, '|')
+  " TODO: Make s:find_directory() a bufvar
+  let l:root_dir = s:find_directory()
 
   let l:executable = chore#executable()
   if empty(l:executable)
@@ -12,16 +21,11 @@ function! chore#open() abort
     return
   endif
 
-  " TODO: Make s:find_directory() a bufvar
-  " call s:search(l:executable, l:search_pattern, s:find_directory())
-  call chore#async#search(l:executable, l:search_pattern, s:find_directory())
-endfunction
-
-" TODO: Move this function to autoload/chore/default.vim and put a check in the
-"       chore#open() function to pick async if it is available or default.
-function! s:search(executable, search_pattern, location) abort
-  let l:output = system(a:executable . ' "' . a:search_pattern . '" "' . a:location . '"')
-  call chore#finalize_search(l:output)
+  if s:async_support == 1
+    call chore#async#search(l:executable, l:search_pattern, l:root_dir)
+  else
+    call chore#default#search(l:executable, l:search_pattern, l:root_dir)
+  endif
 endfunction
 
 function! s:set_title(title) abort
@@ -54,7 +58,7 @@ function! chore#finalize_search(output) abort
           \ 'Unable to push results to list. Check g:chore_jump_type'
           \ )
   endif
-  call s:set_title('Search for ' . join(g:chore_keywords, ', '))
+  call s:set_title('Chores')
 endfunction
 
 function! s:executable_error() abort
@@ -126,10 +130,10 @@ function! s:find_directory() abort
 endfunction
 
 let s:executables = {
-      \   'rg': '--vimgrep --no-heading',
-      \   'ag': '',
-      \   'ack': '--column --with-filename --noheading',
-      \   'ack-grep': '--column --with-filename --noheading'
+      \   'rg': '--vimgrep --no-heading --word-regexp',
+      \   'ag': '--word-regexp',
+      \   'ack': '--column --with-filename --noheading --word-regexp',
+      \   'ack-grep': '--column --with-filename --noheading --word-regexp'
       \ }
 
 let s:init_done = 0
@@ -152,9 +156,9 @@ function! chore#init() abort
   if executable('ag')
     let l:ag_help=system('ag --help')
     if match(l:ag_help, '--vimgrep') != -1
-      let s:executables['ag'] .= '--vimgrep'
+      let s:executables['ag'] .= ' --vimgrep'
     else
-      let s:executables['ag'] .= '--column'
+      let s:executables['ag'] .= ' --column'
     endif
     if match(l:ag_help, '--width') != -1
       let s:executables['ag'] .= ' --width 4096'
