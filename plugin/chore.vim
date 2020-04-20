@@ -29,6 +29,10 @@ if !exists('g:chore_executable_arguments')
   let g:chore_executable_arguments = {}
 endif
 
+if !exists('g:chore_qf_settings')
+  let g:chore_qf_settings = 1
+endif
+
 if !get(g:, 'chore_force_init', 1)
   call chore#init()
 endif

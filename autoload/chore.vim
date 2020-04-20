@@ -113,6 +113,14 @@ function! s:find_ancestor(pattern) abort
   endif
 endfunction
 
+function! chore#delete_qf_entry() abort
+  let l:lineid = winline() - 1
+  let l:qfall = getqflist()
+  call remove(l:qfall, l:lineid)
+  call setqflist(l:qfall, 'r')
+  " TODO: Find a way of moving to the qf entry above the one deleted
+endfunction
+
 function! s:find_directory() abort
   let s:fd = expand('%:p')
 
